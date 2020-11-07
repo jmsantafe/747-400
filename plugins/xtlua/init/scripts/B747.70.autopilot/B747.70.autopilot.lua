@@ -56,6 +56,7 @@ B747DR_ap_vs_show_thousands         	= deferred_dataref("laminar/B747/autopilot/
 B747DR_autopilot_altitude_ft    	= deferred_dataref("laminar/B747/autopilot/heading/altitude_dial_ft", "number")
 B747DR_ap_heading_deg               	= deferred_dataref("laminar/B747/autopilot/heading/degrees", "number")
 B747DR_ap_ias_dial_value            	= deferred_dataref("laminar/B747/autopilot/ias_dial_value", "number")
+B747DR_ap_ias_bug_value            	= deferred_dataref("laminar/B747/autopilot/ias_bug_value", "number")
 B747DR_ap_ias_mach_dial_value            	= deferred_dataref("laminar/B747/autopilot/ias_mach_dial_value", "number") --display only
 B747DR_ap_vnav_system            	= deferred_dataref("laminar/B747/autopilot/vnav_system", "number")
 B747DR_ap_vnav_target_alt            	= deferred_dataref("laminar/B747/autopilot/vnav_target_alt", "number")
@@ -160,7 +161,7 @@ B747DR_ap_AFDS_status_annun            	= deferred_dataref("laminar/B747/autopil
     4 = LAND 3
     5 = NO AUTOLAND
 --]]
-
+B747DR_ap_autoland            	= deferred_dataref("laminar/B747/autopilot/autoland", "number")
 
 B747CMD_ap_thrust_mode              	= deferred_command("laminar/B747/autopilot/button_switch/thrust_mode", "Autopilot THR Mode", B747_ap_thrust_mode_CMDhandler)
 B747CMD_ap_switch_speed_mode			= deferred_command("laminar/B747/autopilot/button_switch/speed_mode", "A/P Speed Mode Switch", B747_ap_switch_speed_mode_CMDhandler)
