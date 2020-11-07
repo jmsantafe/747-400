@@ -493,6 +493,7 @@ function preselect_fuel()
 	-- Used in calculation for displaying Preselect Fuel Qty in correct weight units (actual display done in B747.25.fuel)
 	B747DR_fuel_preselect_temp = B747DR_fuel_preselect
 	B747DR_fuel_add=0
+	simDR_m_jettison=simDR_acf_m_jettison
 end
 
 function fmsFunctions.setdata(fmsO,value)
@@ -648,12 +649,21 @@ function fmsFunctions.setdata(fmsO,value)
     irsSystem["setPos"]=true
     fmsModules["data"]["initIRSLat"]=lat
     fmsModules["data"]["initIRSLon"]=lon
-    
-    if fmsModules["fmsL"].notify=="ENTER IRS POSITION" then fmsModules["fmsL"].notify="" end
-    if fmsModules["fmsC"].notify=="ENTER IRS POSITION" then fmsModules["fmsC"].notify="" end
-    if fmsModules["fmsR"].notify=="ENTER IRS POSITION" then fmsModules["fmsR"].notify="" end
+    B747DR_fmc_notifications[12]=0
+--     if fmsModules["fmsL"].notify=="ENTER IRS POSITION" then fmsModules["fmsL"].notify="" end
+--     if fmsModules["fmsC"].notify=="ENTER IRS POSITION" then fmsModules["fmsC"].notify="" end
+--     if fmsModules["fmsR"].notify=="ENTER IRS POSITION" then fmsModules["fmsR"].notify="" end
+   elseif value=="passengers" then
+     local numPassengers=tonumber(fmsO["scratchpad"])
+     if numPassengers==nil then numPassengers=2 end
+     if numPassengers<2 then numPassengers=2 end
+     if numPassengers>416 then numPassengers=416 end
+     B747DR_payload_weight=numPassengers*120
    elseif value=="services" then
-     fmsModules["cmds"]["sim/ground_ops/service_plane"]:once() fmsModules["lastcmd"]=fmsModules["cmdstrings"]["sim/ground_ops/service_plane"]
+     if simDR_acf_m_jettison==0 then
+	fmsModules["cmds"]["sim/ground_ops/service_plane"]:once() 
+     end
+     fmsModules["lastcmd"]=fmsModules["cmdstrings"]["sim/ground_ops/service_plane"]
      run_after_time(preselect_fuel,30)
    elseif value=="fuelpreselect" and string.len(fmsO["scratchpad"])>0 then
      local fuel=tonumber(fmsO["scratchpad"])
@@ -674,15 +684,19 @@ function fmsFunctions.setdata(fmsO,value)
     setFMSData(value,fmsO["scratchpad"])
 
 --VALIDATE ENTERED FUEL UNITS
-   elseif value=="fuelUnits" and string.len(fmsO["scratchpad"])>0 then
-	if validate_weight_units(fmsO["scratchpad"]) == false then 
+   elseif value=="fuelUnits" then
+	if string.len(fmsO["scratchpad"])>0 and validate_weight_units(fmsO["scratchpad"]) == false then 
       fmsO["notify"]="INVALID ENTRY"
 	elseif is_timer_scheduled(preselect_fuel) == true then
 	  fmsO["notify"]="NA - WAITING FOR FUEL TRUCK"	
     else
+		if fmsModules["data"]["fuelUnits"] == "KGS" then
+			fmsO["scratchpad"] = "LBS"
+		else
+			fmsO["scratchpad"] = "KGS"
+		end
 		setFMSData("fuelUnits",fmsO["scratchpad"])
 	end
-
   elseif fmsO["scratchpad"]=="" and del==false then
       cVal=getFMSData(value)
     
