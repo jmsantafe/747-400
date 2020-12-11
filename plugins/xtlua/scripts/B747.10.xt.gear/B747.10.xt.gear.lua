@@ -235,10 +235,10 @@ function sim_landing_gear_up_CMDhandler(phase, duration)
 end
 
 function sim_landing_gear_down_CMDhandler(phase, duration)
-    if phase == 0 then
-        B747DR_parking_brake_ratio = 0.0
-	    simDR_gear_handle_down = 1
-    end
+     if phase == 0 then
+            B747DR_parking_brake_ratio = 0.0
+ 	    simDR_gear_handle_down = 1
+     end
 end
 
 function sim_landing_gear_toggle_CMDhandler(phase, duration)
@@ -700,23 +700,27 @@ function B747_gear_EICAS_msg()
 
     -- AUTOBRAKES 1
     B747DR_CAS_memo_status[2] = 0
-    if simDR_autobrakes_switch == 2 then B747DR_CAS_memo_status[2] = 1 end
+    if B747DR_autobrakes_sel_dial_pos == 3 then B747DR_CAS_memo_status[2] = 1 end
 
     -- AUTOBRAKES 2
     B747DR_CAS_memo_status[3] = 0
-    if simDR_autobrakes_switch == 3 then B747DR_CAS_memo_status[3] = 1 end
+    if B747DR_autobrakes_sel_dial_pos == 4 then B747DR_CAS_memo_status[3] = 1 end
 
     -- AUTOBRAKES 3
     B747DR_CAS_memo_status[4] = 0
-    if simDR_autobrakes_switch == 4 then B747DR_CAS_memo_status[4] = 1 end
+    if B747DR_autobrakes_sel_dial_pos == 5 then B747DR_CAS_memo_status[4] = 1 end
 
     -- AUTOBRAKES 4
     B747DR_CAS_memo_status[5] = 0
-    if simDR_autobrakes_switch == 5 then B747DR_CAS_memo_status[5] = 1 end
+    if B747DR_autobrakes_sel_dial_pos == 6 then B747DR_CAS_memo_status[5] = 1 end
+
+    -- AUTOBRAKES MAX
+    B747DR_CAS_memo_status[6] = 0
+    if B747DR_autobrakes_sel_dial_pos == 7 then B747DR_CAS_memo_status[6] = 1 end
 
     -- AUTOBRAKES RTO
     B747DR_CAS_memo_status[7] = 0
-    if simDR_autobrakes_switch == 0 then B747DR_CAS_memo_status[7] = 1 end
+    if B747DR_autobrakes_sel_dial_pos == 0 then B747DR_CAS_memo_status[7] = 1 end
 
 end
 
@@ -727,7 +731,7 @@ end
 
 ----- MONITOR AI FOR AUTO-BOARD CALL ----------------------------------------------------
 function B747_gear_monitor_AI()
-     if simDR_gear_handle_down==0 then B747DR_parking_brake_ratio =0 end
+     --if simDR_gear_handle_down==0 then B747DR_parking_brake_ratio =0 end
     if B747DR_init_gear_CD == 1 then
         B747_set_gear_all_modes()
         B747_set_gear_CD()

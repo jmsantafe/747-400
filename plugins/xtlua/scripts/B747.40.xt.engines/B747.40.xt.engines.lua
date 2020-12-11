@@ -145,7 +145,7 @@ simDR_thrust_rev_fail_01        = find_dataref("sim/operation/failures/rel_rever
 simDR_thrust_rev_fail_02        = find_dataref("sim/operation/failures/rel_revers1")
 simDR_thrust_rev_fail_03        = find_dataref("sim/operation/failures/rel_revers2")
 simDR_thrust_rev_fail_04        = find_dataref("sim/operation/failures/rel_revers3")
-
+simDR_thrust_spoolTime	        = find_dataref("sim/aircraft/engine/acf_spooltime_turbine")
 simDR_autopilot_TOGA_vert_status = find_dataref("sim/cockpit2/autopilot/TOGA_status")
 
     simDR_ind_airspeed_kts_pilot        	= find_dataref("sim/cockpit2/gauges/indicators/airspeed_kts_pilot")
@@ -529,8 +529,10 @@ function B747_thrust_rev_hold_max_all_CMDhandler(phase, duration)
 				simDR_engine_throttle_jet_all = -1.0
 				B747_hold_rev_on_all = 1
 			end
-			
-		end	
+		else
+		  simDR_engine_throttle_jet_all=0.0
+		end
+
 		
 	end		
 	
@@ -564,7 +566,9 @@ function B747_engine_TOGA_power_CMDhandler(phase, duration)
 	if phase == 0 then
         if B747DR_toggle_switch_position[29] == 1 then
             --if simDR_allThrottle>0.25 then
-		    B747DR_ap_autoland=-2
+		    if simDR_all_wheels_on_ground==0 then
+		      B747DR_ap_autoland=-2
+		    end
 		    simCMD_autopilot_autothrottle_off:once()
 	            if B747DR_engine_TOGA_mode == 0 then
                 	--[[simDR_engine_throttle_input[0] = 0.95
@@ -755,7 +759,7 @@ function B747_prop_mode()
     
     
     -- AIRCRAFT IS "ON THE GROUND" 
-	if simDR_all_wheels_on_ground == 0 then		
+	if simDR_all_wheels_on_ground == 0 and B747_hold_rev_on_all<1 then		
 	    
 	    -- FORCE PROP MODE TO NORMAL MODE TO PREVENT USER 
 	    -- ENGAGING "REVERSE MODE WHILE IN FLIGHT
@@ -852,7 +856,11 @@ function B747_EGT_indicator()
             num_eng_running = num_eng_running + 1
         end
     end
-
+    if num_eng_running==4 then 
+      simDR_thrust_spoolTime=5
+    elseif num_eng_running==0 then
+      simDR_thrust_spoolTime=26
+    end
     -- ----------------------------------------------------------------------------------
     -- ENGINE #1
     -- ----------------------------------------------------------------------------------
@@ -1173,12 +1181,14 @@ function B747_secondary_EICAS2_oil_press_status()
     B747DR_engine_oil_press_psi[3] = simDR_engine_oil_pressure[3] + B747_rescale(0.0, 0.0, 100.0, B747_eng4oilPressVariance, simDR_engine_N1_pct[3])
 
     for i = 0, 3 do
-        B747DR_EICAS2_oil_press_status[i] = 0
+        
         if B747DR_engine_oil_press_psi[i] < 70.0                                            -- PRESURE IS BELOW MINIMUM
             and (simDR_engine_starter_status[i] == 0                                        -- ENGINE STARTER IS NOT ENGAGED
                 or B747DR_fuel_control_toggle_switch_pos[i] > 0.95)                         -- ENGINE IS NOT SHUTDOWN
         then
             B747DR_EICAS2_oil_press_status[i] = 1                                           -- SHOW REDLINE OBJECTS
+	else
+	  B747DR_EICAS2_oil_press_status[i] = 0
         end
     end
 
@@ -1502,7 +1512,7 @@ function B747_engines_monitor_AI()
         B747_set_engines_all_modes2()
         B747DR_init_engines_CD = 2
     end
-
+    
 end
 
 
@@ -1554,7 +1564,7 @@ function B747_set_engines_ER()
     B747DR_engine_fuel_valve_pos[1] = 1
     B747DR_engine_fuel_valve_pos[2] = 1
     B747DR_engine_fuel_valve_pos[3] = 1  
-
+    simDR_thrust_spoolTime=5
     B747_startup_ignition()
 	
 end

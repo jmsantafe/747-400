@@ -59,6 +59,8 @@ end
 fmsFunctionsDefs["INDEX"]={}
 fmsFunctionsDefs["INDEX"]["L1"]={"setpage","FMC"}
 fmsFunctionsDefs["INDEX"]["L2"]={"setpage","ACARS"}
+fmsFunctionsDefs["INDEX"]["L5"]={"setpage","ACMS"}
+fmsFunctionsDefs["INDEX"]["L6"]={"setpage","CMC"}
 fmsFunctionsDefs["INDEX"]["R4"]={"setpage","GNDHNDL"}
 fmsPages["RTE1"]=createPage("RTE1")
 fmsPages["RTE1"].getPage=function(self,pgNo,fmsID)
@@ -87,8 +89,8 @@ fmsPages["RTE1"].getPage=function(self,pgNo,fmsID)
   }
   return page 
 end
---fmsFunctionsDefs["RTE1"]["L1"]={"custom2fmc","L1"}
-fmsFunctionsDefs["RTE1"]["L1"]={"setdata","origin"}
+fmsFunctionsDefs["RTE1"]["L1"]={"custom2fmc","L1"}
+--fmsFunctionsDefs["RTE1"]["L1"]={"setdata","origin"}
 fmsFunctionsDefs["RTE1"]["L2"]={"custom2fmc","L2"}
 fmsFunctionsDefs["RTE1"]["L3"]={"custom2fmc","L3"}
 fmsFunctionsDefs["RTE1"]["L4"]={"custom2fmc","L4"}
@@ -117,14 +119,19 @@ dofile("activepages/B744.fms.pages.maintirsmonitor.lua")
 dofile("activepages/B744.fms.pages.maintperffactor.lua")
 dofile("activepages/B744.fms.pages.progress.lua")
 dofile("activepages/B744.fms.pages.actrte1.lua")
-dofile("activepages/B744.fms.pages.atcindex.lua")
-dofile("activepages/B744.fms.pages.atclogonstatus.lua")
-dofile("activepages/B744.fms.pages.atcreport.lua")
 dofile("activepages/B744.fms.pages.fmccomm.lua")
 dofile("activepages/B744.fms.pages.vnav.lua")
 dofile("activepages/B744.fms.pages.groundhandling.lua")
 dofile("activepages/B744.fms.pages.maintsimconfig.lua")
 dofile("activepages/B744.fms.pages.identpage.lua")
+dofile("activepages/atc/B744.fms.pages.atcindex.lua")
+dofile("activepages/atc/B744.fms.pages.atclogonstatus.lua")
+dofile("activepages/atc/B744.fms.pages.atcreport.lua")
+dofile("activepages/atc/B744.fms.pages.posreport.lua")
+dofile("activepages/atc/B744.fms.pages.request.lua")
+dofile("activepages/atc/B744.fms.pages.whencanwe.lua")
+dofile("activepages/B744.fms.pages.cmc.lua")
+dofile("activepages/B744.fms.pages.acms.lua")
 --[[
 dofile("B744.fms.pages.actclb.lua")
 dofile("B744.fms.pages.actcrz.lua")
@@ -469,7 +476,7 @@ function validateMachSpeed(value)
   return ""..val
 end
 
--- VALIDATE ENTRY OF FUEL WEIGHT UNITS
+-- VALIDATE ENTRY OF WEIGHT UNITS
 function validate_weight_units(value)
 	local val=tostring(value)
 	print(value)
@@ -483,14 +490,15 @@ end
 function preselect_fuel()
 	-- DETERMINE FUEL WEIGHT DISPLAY UNITS
 	local fuel_calculation_factor = 1
-	local KGS_TO_LBS = 2.2046226218488
-	if B747DR_fuel_display_units == "LBS" then
-		fuel_calculation_factor = KGS_TO_LBS
+	
+	if simConfigData["data"].weight_display_units == "LBS" then
+		fuel_calculation_factor = simConfigData["data"].kgs_to_lbs
 	end
-	B747DR_refuel=B747DR_fuel_add*1000 / fuel_calculation_factor  --(always add fuel in KGS behind the scenes)
+	
+	B747DR_refuel=B747DR_fuel_add * 1000 / fuel_calculation_factor  --(always add fuel in KGS behind the scenes)
 	B747DR_fuel_preselect=simDR_fueL_tank_weight_total_kg + B747DR_refuel
-						
-	-- Used in calculation for displaying Preselect Fuel Qty in correct weight units (actual display done in B747.25.fuel)
+	
+	-- Used in calculation for displaying Preselect Fuel Qty in correct weight units (actual display done in B747.25.xt.fuel)
 	B747DR_fuel_preselect_temp = B747DR_fuel_preselect
 	B747DR_fuel_add=0
 	simDR_m_jettison=simDR_acf_m_jettison
@@ -661,6 +669,7 @@ function fmsFunctions.setdata(fmsO,value)
      B747DR_payload_weight=numPassengers*120
    elseif value=="services" then
      if simDR_acf_m_jettison==0 then
+        fmsModules["cmds"]["laminar/B747/electrical/connect_power"]:once() 
 	fmsModules["cmds"]["sim/ground_ops/service_plane"]:once() 
      end
      fmsModules["lastcmd"]=fmsModules["cmdstrings"]["sim/ground_ops/service_plane"]
@@ -673,7 +682,7 @@ function fmsFunctions.setdata(fmsO,value)
      end
    elseif value=="origin" and string.len(fmsO["scratchpad"])>0 then
      fmsFunctions["custom2fmc"](fmsO,"L1")
-     fmsModules:setData("crzalt","*****") -- clear cruise alt /crzalt when entering a new source airport
+     fmsModules:setData("crzalt","*****") -- clear cruise alt /crzalt when entering a new source airport (this is broken and currently disabled)
    elseif value=="airportgate" and string.len(fmsO["scratchpad"])>0 then
     local lat=toDMS(simDR_latitude,true)
     local lon=toDMS(simDR_longitude,false)
@@ -683,19 +692,23 @@ function fmsFunctions.setdata(fmsO,value)
     setFMSData("irsLon",lon)
     setFMSData(value,fmsO["scratchpad"])
 
---VALIDATE ENTERED FUEL UNITS
-   elseif value=="fuelUnits" then
+--VALIDATE ENTERED WEIGHT UNITS
+   elseif value=="weightUnits" then
 	if string.len(fmsO["scratchpad"])>0 and validate_weight_units(fmsO["scratchpad"]) == false then 
       fmsO["notify"]="INVALID ENTRY"
 	elseif is_timer_scheduled(preselect_fuel) == true then
-	  fmsO["notify"]="NA - WAITING FOR FUEL TRUCK"	
+	  fmsO["notify"]="NA - WAITING FOR FUEL TRUCK"
+	elseif string.len(fmsO["scratchpad"]) > 0 then
+		simConfigData["data"].weight_display_units = fmsO.scratchpad
+		B747DR_simconfig_data=json.encode(simConfigData["data"]["values"])
     else
-		if fmsModules["data"]["fuelUnits"] == "KGS" then
+		if simConfigData["data"].weight_display_units == "KGS" then
 			fmsO["scratchpad"] = "LBS"
 		else
 			fmsO["scratchpad"] = "KGS"
 		end
-		setFMSData("fuelUnits",fmsO["scratchpad"])
+		simConfigData["data"].weight_display_units = fmsO.scratchpad
+		B747DR_simconfig_data=json.encode(simConfigData["data"]["values"])
 	end
   elseif fmsO["scratchpad"]=="" and del==false then
       cVal=getFMSData(value)

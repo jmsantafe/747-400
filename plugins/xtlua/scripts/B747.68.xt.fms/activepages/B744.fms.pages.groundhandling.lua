@@ -1,13 +1,10 @@
 
-
+registerFMCCommand("laminar/B747/electrical/connect_power","GRND POWER")
 registerFMCCommand("sim/ground_ops/service_plane","GROUND SERVICES")
 registerFMCCommand("sim/ground_ops/pushback_stop","STOP PUSHBACK")
 registerFMCCommand("sim/ground_ops/pushback_left","PUSHBACK LEFT")
 registerFMCCommand("sim/ground_ops/pushback_straight","PUSHBACK STRAIGHT")
 registerFMCCommand("sim/ground_ops/pushback_right","PUSHBACK RIGHT")
-
--- FUEL WEIGHT DISPLAY UNITS (KGS/LBS)
-B747DR_fuel_display_units				= deferred_dataref("laminar/B747/fuel/fuel_display_units", "string")
 
 fmsPages["GNDHNDL"]=createPage("GNDHNDL")
 fmsPages["GNDHNDL"].getPage=function(self,pgNo,fmsID)
@@ -66,8 +63,8 @@ fmsPages["GNDSRV"].getPage=function(self,pgNo,fmsID)
   local lineC = " ".. string.format("%03d",B747DR_payload_weight/120)
   if simDR_acf_m_jettison>0 then
 	local jet_weight=simDR_m_jettison
-	if B747DR_fuel_display_units == "LBS" then
-	   jet_weight=simDR_m_jettison*2.2046226218488
+	if simConfigData["data"].weight_display_units == "LBS" then
+	   jet_weight=simDR_m_jettison * simConfigData["data"].kgs_to_lbs
 	end
 	lineC = "               ".. string.format("%06d",jet_weight) .."         "
   end	  
@@ -79,7 +76,7 @@ fmsPages["GNDSRV"].getPage=function(self,pgNo,fmsID)
   "                        ",
   "<REQUEST GROUND SERVICES",
   "                        ",
-  "                        ",
+  "<GROUND POWER           ",
   "                        ",
   " "..lineA,
   "                        ",
@@ -98,7 +95,7 @@ fmsPages["GNDSRV"].getSmallPage=function(self,pgNo,fmsID)
 	if simDR_acf_m_jettison>0 then
 	  lineB = "     FIRE RETARDANT LOAD"
 	  fmsFunctionsDefs["GNDSRV"]["L4"]=nil
-	  if B747DR_fuel_display_units == "LBS" then
+	  if simConfigData["data"].weight_display_units == "LBS" then
 	    lineC = "                     LBS"
 	  else
 	    lineC = "                     KGS"
@@ -108,7 +105,7 @@ fmsPages["GNDSRV"].getSmallPage=function(self,pgNo,fmsID)
 	    lineC = "      x120kgs           "
 	    fmsFunctionsDefs["GNDSRV"]["L4"]={"setdata","passengers"}
 	end
-	if B747DR_fuel_display_units == "LBS" then
+	if simConfigData["data"].weight_display_units == "LBS" then
 		lineA = "x1000LBS"
 		lineC = "      x265LBS           "
 		
@@ -131,6 +128,7 @@ fmsPages["GNDSRV"].getSmallPage=function(self,pgNo,fmsID)
   }
 end
 fmsFunctionsDefs["GNDSRV"]["L1"]={"setdata","services"}
+fmsFunctionsDefs["GNDSRV"]["L2"]={"doCMD","laminar/B747/electrical/connect_power"}
 fmsFunctionsDefs["GNDSRV"]["L3"]={"setdata","fuelpreselect"}
 fmsFunctionsDefs["GNDSRV"]["L6"]={"setpage","GNDHNDL"}
 
